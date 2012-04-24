@@ -4,9 +4,9 @@ A service for caching and retrieving images.
 
 ## Usage
 
-`(use 'lichen.core)
+`(use 'lichen.core)`
 
-(resize-file "before.png" "after.png" {:width 200})`
+`(resize-file "before.png" "after.png" {:width 200})`
 
 ## License
 
