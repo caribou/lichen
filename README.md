@@ -1,15 +1,14 @@
 # lichen
 
-I'm an app. Or maybe I'm a library? I haven't decided yet. 
-
-The choice is up to you!
+A service for caching and retrieving images.
 
 ## Usage
 
-FIXME
+(use 'lichen.core)
+(resize-file "before.png" "after.png" {:width 200})
 
 ## License
 
-Copyright © 2012 FIXME
+Copyright © 2012 Instrument/Antler
 
 Distributed under the Eclipse Public License, the same as Clojure.
