@@ -124,9 +124,11 @@
   [original opts]
   (let [width (original :width)
         height (original :height)
+        desired-width (if-let [w (opts :width)] (Integer. w))
+        desired-height (if-let [h (opts :height)] (Integer. h))
         ratio (/ (float width) (float height))
-        target-width (or (opts :width) (* (opts :height) ratio))
-        target-height (or (opts :height) (/ (opts :width) ratio))
+        target-width (or desired-width (* desired-height ratio))
+        target-height (or desired-height (/ desired-width ratio))
         larger (max target-width target-height)
         sized (Scalr/resize (original :image) Scalr$Method/ULTRA_QUALITY (int larger) (into-array BufferedImageOp []))]
     {:image sized}))
@@ -137,5 +139,5 @@
   the aspect ratio of the original image."
   [filename new-filename opts]
   (let [original (read-image filename)
-        sized (resize original opts)]
+        sized (resize-stream original opts)]
     (write-image sized new-filename)))
