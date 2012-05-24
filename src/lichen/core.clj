@@ -8,7 +8,11 @@
             [compojure.handler :as handler]
             [lichen.image :as image]))
 
-(def asset-root "assets")
+(def asset-root
+  (or (System/getProperty "lichen.assets") "assets"))
+
+(def lichen-root
+  (or (System/getProperty "lichen.root") "lichen"))
 
 (def file-separator
   (str (.get (java.lang.System/getProperties) "file.separator")))
@@ -32,17 +36,21 @@
   [uri]
   (last (re-find #".*(\..*)$" uri)))
 
+(defn lichen-pattern
+  [before & after]
+  (re-pattern (apply str (concat [before lichen-root] after))))
+
 (defn lichen-route?
   [uri]
-  (re-find #"^/lichen" uri))
+  (re-find (lichen-pattern "^/") uri))
 
 (defn remove-lichen-prefix
   [uri]
-  (last (re-find #"^/lichen(/?.*)" uri)))
+  (last (re-find (lichen-pattern "^/" "(/?.*)") uri)))
 
 (defn extract-image-path
   [uri]
-  (last (re-find #"^/lichen(.*/)[^/]*" uri)))
+  (last (re-find (lichen-pattern "^/" "(.*/)[^/]*") uri)))
 
 (defn build-token
   [uri queries]
@@ -62,17 +70,22 @@
         extension (attain-extension uri)]
     (str asset-root path token extension)))
 
-(defn lichen-handler
-  [request]
-  (if (lichen-route? (request :uri))
-    (let [original (remove-lichen-prefix (request :uri))
-          target (lichen-uri (request :uri) (request :query-string))
-          image-file (io/file target)]
-      (if (not (cached-image? image-file))
-        (do
-          (println "resizing " (.getName image-file))
-          (image/resize-file (pathify [asset-root original]) target (request :params))))
-      {:status 200 :headers {} :body image-file})))
+(defn wrap-lichen
+  [handler asset-root]
+  (fn [request]
+    (if (lichen-route? (request :uri))
+      (let [original (remove-lichen-prefix (request :uri))
+            target (lichen-uri (request :uri) (request :query-string))
+            image-file (io/file target)]
+        (if (not (cached-image? image-file))
+          (do
+            (println "resizing " (.getName image-file))
+            (image/resize-file (pathify [asset-root original]) target (request :params))))
+        {:status 200 :headers {} :body image-file})
+      (handler request))))
+
+(def lichen-handler
+  (wrap-lichen (fn [request] "not found") asset-root))
 
 (def app
   (-> lichen-handler
