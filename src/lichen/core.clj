@@ -64,7 +64,7 @@
   (.exists image-file))
   
 (defn lichen-uri
-  [uri queries]
+  [uri queries asset-root]
   (let [path (extract-image-path uri)
         token (build-token uri queries)
         extension (attain-extension uri)]
@@ -73,26 +73,27 @@
 (defn wrap-lichen
   [handler asset-root]
   (fn [request]
-    (if (lichen-route? (request :uri))
-      (let [original (remove-lichen-prefix (request :uri))
-            target (lichen-uri (request :uri) (request :query-string))
+    (if (lichen-route? (:uri request))
+      (let [original (remove-lichen-prefix (:uri request))
+            target (lichen-uri (:uri request) (:query-string request) asset-root)
             image-file (io/file target)]
         (if (not (cached-image? image-file))
           (do
             (println "resizing " (.getName image-file))
-            (image/resize-file (pathify [asset-root original]) target (request :params))))
+            (image/resize-file (pathify [asset-root original]) target (:params request))))
         {:status 200 :headers {} :body image-file})
       (handler request))))
 
 (def lichen-handler
   (wrap-lichen (fn [request] "not found") asset-root))
 
-(def app
-  (-> lichen-handler
-      (wrap-reload '[lichen.core])
-      handler/site
-      (wrap-file asset-root)))
+(declare app)
 
 (defn init
-  [] )
+  []
+  (def app
+    (-> lichen-handler
+        (wrap-reload '[lichen.core])
+        handler/site
+        (wrap-file asset-root))))
 
