@@ -37,7 +37,7 @@
 
 (defn lichen-route?
   [uri]
-  (re-find (lichen-pattern "^/") uri))
+  (re-find (lichen-pattern "^/" "/[^?]+") uri))
 
 (defn remove-lichen-prefix
   [uri]
@@ -58,25 +58,32 @@
   [image-file]
   (.exists image-file))
   
+(defn lichen-dir
+  [uri asset-root]
+  (let [path (extract-image-path uri)]
+    (str asset-root path "lichen/")))
+
 (defn lichen-uri
   [uri queries asset-root]
-  (let [path (extract-image-path uri)
+  (let [dir (lichen-dir uri asset-root)
         token (build-token uri queries)
         extension (attain-extension uri)]
-    (str asset-root path token extension)))
+    (str dir token extension)))
 
 (defn wrap-lichen
   [handler asset-root]
   (fn [request]
     (if (lichen-route? (:uri request))
       (let [original (remove-lichen-prefix (:uri request))
-            target (lichen-uri (:uri request) (:query-string request) asset-root)
-            image-file (io/file target)]
-        (if (not (cached-image? image-file))
-          (do
-            (println "resizing " (.getName image-file))
-            (image/resize-file (pathify [asset-root original]) target (:params request))))
-        {:status 200 :headers {} :body image-file})
+            dir (lichen-dir (:uri request) asset-root)]
+        (.mkdirs (io/file dir))
+        (let [target (lichen-uri (:uri request) (:query-string request) asset-root)
+              image-file (io/file target)]
+          (if (not (cached-image? image-file))
+            (do
+              (println "resizing " (.getName image-file))
+              (image/resize-file (pathify [asset-root original]) target (:params request))))
+          {:status 200 :headers {} :body image-file}))
       (handler request))))
 
 (def lichen-handler

@@ -39,6 +39,8 @@
   (:width or :height), saving to file new-filename.  This function retains
   the aspect ratio of the original image."
   [filename new-filename opts]
-  (let [original (open-image (io/file filename))
-        sized (resize-stream original opts)]
-    (output-image sized new-filename (or (:quality opts) 1.0))))
+  (try
+    (let [original (open-image (io/file filename))
+          sized (resize-stream original opts)]
+      (output-image sized new-filename (or (:quality opts) 1.0)))
+    (catch Exception e (println e))))
