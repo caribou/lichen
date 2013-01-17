@@ -1,11 +1,6 @@
 (ns lichen.core
-  ;; (:use compojure.core
-  ;;       [ring.middleware.file :only (wrap-file)]
-  ;;       [ring.middleware.reload :only (wrap-reload)])
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
-            ;; [compojure.route :as route]
-            ;; [compojure.handler :as handler]
             [lichen.image :as image]))
 
 (def asset-root
@@ -86,14 +81,4 @@
 
 (def lichen-handler
   (wrap-lichen (fn [request] "not found") asset-root))
-
-;; (declare app)
-
-;; (defn init
-;;   []
-;;   (def app
-;;     (-> lichen-handler
-;;         (wrap-reload '[lichen.core])
-;;         handler/site
-;;         (wrap-file asset-root))))
 
