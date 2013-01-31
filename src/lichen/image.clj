@@ -1,13 +1,20 @@
 (ns lichen.image
   (:require [clojure.java.io :as io])
   (:import [java.awt.image BufferedImage]
+           [java.awt Color]
            [javax.imageio IIOImage ImageIO ImageReader]
            [javax.imageio.plugins.jpeg JPEGImageWriteParam]
            [com.mortennobel.imagescaling ResampleOp]))
 
 (defn open-image
   [filename]
-  (ImageIO/read filename))
+  (let [image (ImageIO/read (io/file filename))
+        width (.getWidth image)
+        height (.getHeight image)
+        buffered (BufferedImage. width height BufferedImage/TYPE_INT_RGB)
+        graphics (.createGraphics buffered)]
+    (.drawImage graphics image 0 0 width height Color/BLACK nil)
+    buffered))
 
 (defn output-image
   [image filename quality]
@@ -40,7 +47,7 @@
   the aspect ratio of the original image."
   [filename new-filename opts]
   (try
-    (let [original (open-image (io/file filename))
+    (let [original (open-image filename)
           sized (resize-stream original opts)]
       (output-image sized new-filename (or (:quality opts) 1.0)))
     (catch Exception e (println e))))
