@@ -1,6 +1,7 @@
 (ns lichen.core
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
+            [clojure.walk :as walk]
             [lichen.image :as image]))
 
 (def asset-root
@@ -70,20 +71,33 @@
         extension (attain-extension uri)]
     (str dir token extension)))
 
+(defn query-string
+  [opts]
+  (let [query (sort (seq opts))]
+    (string/join "&" (map (fn [[k v]] (str (name k) "=" v)) query))))
+
+(defn lichen-resize
+  [path opts asset-root]
+  (let [adapted (str asset-root (remove-lichen-prefix path))
+        dir (lichen-dir path asset-root)
+        queries (query-string opts)]
+    (.mkdirs (io/file dir))
+    (let [target (lichen-uri path queries asset-root)
+          image-file (io/file target)
+          image-path (remove-lichen-prefix path)
+          original (pathify [asset-root image-path])]
+      (if (not (cached-image? image-file))
+        (do
+          (println "resizing " adapted " to " (.getName image-file))
+          (image/resize-file adapted target (walk/keywordize-keys opts))))
+      image-file)))
+
 (defn wrap-lichen
   [handler asset-root]
   (fn [request]
     (if (lichen-route? (:uri request))
-      (let [original (remove-lichen-prefix (:uri request))
-            dir (lichen-dir (:uri request) asset-root)]
-        (.mkdirs (io/file dir))
-        (let [target (lichen-uri (:uri request) (:query-string request) asset-root)
-              image-file (io/file target)]
-          (if (not (cached-image? image-file))
-            (do
-              (println "resizing " (.getName image-file))
-              (image/resize-file (pathify [asset-root original]) target (:params request))))
-          {:status 200 :headers {} :body image-file}))
+      (let [resize (lichen-resize (:uri request) (:query-params request) asset-root)]
+        {:status 200 :headers {} :body resize})
       (handler request))))
 
 (def lichen-handler

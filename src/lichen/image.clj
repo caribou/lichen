@@ -50,4 +50,4 @@
     (let [original (open-image filename)
           sized (resize-stream original opts)]
       (output-image sized new-filename (or (:quality opts) 1.0)))
-    (catch Exception e (println e))))
+    (catch Exception e (do (println e) (.printStackTrace e)))))
