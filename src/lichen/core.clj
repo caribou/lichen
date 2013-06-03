@@ -61,8 +61,9 @@
   
 (defn lichen-dir
   [uri asset-root]
-  (let [path (extract-image-path uri)]
-    (str asset-root path "lichen/")))
+  (let [path (extract-image-path uri)
+        lichen-dir (str asset-root path lichen-root file-separator)]
+    lichen-dir))
 
 (defn lichen-uri
   [uri queries asset-root]
