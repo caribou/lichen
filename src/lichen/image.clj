@@ -6,25 +6,38 @@
            [javax.imageio.plugins.jpeg JPEGImageWriteParam]
            [com.mortennobel.imagescaling ResampleOp]))
 
-(defn open-image
-  [filename]
-  (let [image (ImageIO/read (io/file filename))
-        width (.getWidth image)
+(defn open-image-stream
+  [image]
+  (let [width (.getWidth image)
         height (.getHeight image)
         buffered (BufferedImage. width height BufferedImage/TYPE_INT_RGB)
         graphics (.createGraphics buffered)]
     (.drawImage graphics image 0 0 width height Color/BLACK nil)
     buffered))
 
-(defn output-image
-  [image filename quality]
+;; for file input, named for historical reasons
+(defn open-image
+  [filename]
+  (open-image-stream (ImageIO/read (io/file filename))))
+
+(defn open-image-url
+  [url]
+  (open-image-stream (ImageIO/read (io/input-stream url))))
+        
+(defn output-image-to
+  [image stream quality]
   (let [writer (.next (ImageIO/getImageWritersByFormatName "jpg"))
-        output (ImageIO/createImageOutputStream (io/file filename))
+        output (ImageIO/createImageOutputStream stream)
         _ (.setOutput writer output)
         params (doto (.getDefaultWriteParam writer)
                  (.setCompressionMode JPEGImageWriteParam/MODE_EXPLICIT)
                  (.setCompressionQuality quality))]
     (.write writer nil (IIOImage. image nil nil) params)))
+
+(defn output-image
+  [image filename quality]
+  (let [filestream (io/file filename)]
+    (output-image-to image filestream quality)))
 
 (defn resize-stream
   "Given an image stream, return a new stream that has been resized to the given width or height."
@@ -51,3 +64,11 @@
           sized (resize-stream original opts)]
       (output-image sized new-filename (or (:quality opts) 1.0)))
     (catch Exception e (do (println e) (.printStackTrace e)))))
+
+(defn resize-url
+  [url target opts]
+  (try
+    (let [original (open-image-url url)
+          sized (resize-stream original opts)]
+      (output-image-to sized target (or (:quality opts) 1.0)))
+    (catch Exception e (do (println e)))))
