@@ -3,7 +3,7 @@
   :url "http://github.com/antler/lichen"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.3.0"]
+  :dependencies [[org.clojure/clojure "1.4.0"]
                  [com.mortennobel/java-image-scaling "0.8.5"]
                  [clj-aws-s3 "0.3.6"]]
   :jvm-opts ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n"]

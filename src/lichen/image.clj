@@ -66,9 +66,12 @@
     (catch Exception e (do (println e) (.printStackTrace e)))))
 
 (defn resize-url
-  [url target opts]
+  "returns a stream suitable for passing to, for example, an s3 upload"
+  [url opts]
   (try
     (let [original (open-image-url url)
-          sized (resize-stream original opts)]
-      (output-image-to sized target (or (:quality opts) 1.0)))
+          sized (resize-stream original opts)
+          byte-stream (java.io.ByteArrayOutputStream.)]
+      (output-image-to sized byte-stream (or (:quality opts) 1.0))
+      (java.io.ByteArrayInputStream (.toByteArray byte-stream)))
     (catch Exception e (do (println e)))))
