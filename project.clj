@@ -1,4 +1,4 @@
-(defproject antler/lichen "0.3.3"
+(defproject antler/lichen "0.3.5"
   :description "A service for caching and retrieving images"
   :url "http://github.com/antler/lichen"
   :license {:name "Eclipse Public License"
