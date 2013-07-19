@@ -40,7 +40,11 @@
     (output-image-to image filestream quality)))
 
 (defn resize-stream
-  "Given an image stream, return a new stream that has been resized to the given width or height."
+  "Given an image stream, return a new stream that has been resized
+   understood options:
+     :width desired width
+     :height desired height
+     :quality desired image quality"
   [original opts]
   (let [width (.getWidth original)
         height (.getHeight original)
@@ -73,5 +77,5 @@
           sized (resize-stream original opts)
           byte-stream (java.io.ByteArrayOutputStream.)]
       (output-image-to sized byte-stream (or (:quality opts) 1.0))
-      (java.io.ByteArrayInputStream (.toByteArray byte-stream)))
+      (java.io.ByteArrayInputStream. (.toByteArray byte-stream)))
     (catch Exception e (do (println e)))))
