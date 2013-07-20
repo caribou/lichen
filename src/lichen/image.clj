@@ -51,8 +51,12 @@
         desired-width (if-let [w (opts :width)] (Integer. w))
         desired-height (if-let [h (opts :height)] (Integer. h))
         ratio (/ (float width) (float height))
-        target-width (or desired-width (* desired-height ratio))
-        target-height (or desired-height (/ desired-width ratio))
+        target-width (or desired-width
+                         (and desired-height (* desired-height ratio))
+                         width)
+        target-height (or desired-height
+                          (and desired-width (/ desired-width ratio))
+                          height)
         larger (max target-width target-height)
         resample (ResampleOp. target-width target-height)
         sized (.filter resample original nil)]
