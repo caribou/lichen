@@ -1,8 +1,9 @@
 (ns lichen.image
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [lichen.path :as path])
   (:import [java.awt.image BufferedImage]
            [java.awt Color]
-           [javax.imageio IIOImage ImageIO ImageReader]
+           [javax.imageio IIOImage ImageIO ImageReader ImageWriteParam]
            [javax.imageio.plugins.jpeg JPEGImageWriteParam]
            [com.mortennobel.imagescaling ResampleOp]))
 
@@ -25,19 +26,27 @@
   (open-image-stream (ImageIO/read (io/input-stream url))))
         
 (defn output-image-to
-  [image stream quality]
-  (let [writer (.next (ImageIO/getImageWritersByFormatName "jpg"))
+  [image stream quality & [extension]]
+  (println "extension is" extension)
+  (let [extension (or extension "jpg")
+        writer (.next (ImageIO/getImageWritersByFormatName extension))
         output (ImageIO/createImageOutputStream stream)
         _ (.setOutput writer output)
-        params (doto (.getDefaultWriteParam writer)
-                 (.setCompressionMode JPEGImageWriteParam/MODE_EXPLICIT)
-                 (.setCompressionQuality quality))]
+        params (.getDefaultWriteParam writer)]
+    (cond (= extension "jpg")
+          (.setCompressionMode params JPEGImageWriteParam/MODE_EXPLICIT)
+          (= extension "gif")
+          (.setCompressionMode params ImageWriteParam/MODE_EXPLICIT)
+          :default nil)
+    (when (#{"jpg"} extension)
+      (.setCompressionQuality params quality))
     (.write writer nil (IIOImage. image nil nil) params)))
 
 (defn output-image
   [image filename quality]
-  (let [filestream (io/file filename)]
-    (output-image-to image filestream quality)))
+  (let [filestream (io/file filename)
+        extension (subs (path/attain-extension filename) 1)]
+    (output-image-to image filestream quality extension)))
 
 (defn resize-stream
   "Given an image stream, return a new stream that has been resized
@@ -73,13 +82,24 @@
       (output-image sized new-filename (or (:quality opts) 1.0)))
     (catch Exception e (do (println e) (.printStackTrace e)))))
 
+(defn url-content-type
+  [url]
+  (-> url
+      .openConnection
+      (doto (.setRequestMethod "HEAD") .connect)
+      .getContentType))
+
 (defn resize-url
   "returns a stream suitable for passing to, for example, an s3 upload"
-  [url opts]
+  [url opts & [content-type]]
   (try
-    (let [original (open-image-url url)
+    (let [content-type (or content-type (url-content-type url))
+          extension (get {"image/jpeg" "jpg"
+                          "image/png" "png"
+                          "image/gif" "gif"} content-type "jpg")
+          original (open-image-url url)
           sized (resize-stream original opts)
           byte-stream (java.io.ByteArrayOutputStream.)]
-      (output-image-to sized byte-stream (or (:quality opts) 1.0))
+      (output-image-to sized byte-stream (or (:quality opts) 1.0) extension)
       (java.io.ByteArrayInputStream. (.toByteArray byte-stream)))
     (catch Exception e (do (println e)))))

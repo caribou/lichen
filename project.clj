@@ -5,6 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [com.mortennobel/java-image-scaling "0.8.5"]
+                 ;; [org.imgscalr/imgscalr-lib "4.2"]
                  [clj-aws-s3 "0.3.6"]]
   :jvm-opts ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n"]
   :ring {:handler lichen.core/app
