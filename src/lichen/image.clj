@@ -11,9 +11,9 @@
   [image]
   (let [width (.getWidth image)
         height (.getHeight image)
-        buffered (BufferedImage. width height BufferedImage/TYPE_INT_RGB)
+        buffered (BufferedImage. width height BufferedImage/TYPE_4BYTE_ABGR)
         graphics (.createGraphics buffered)]
-    (.drawImage graphics image 0 0 width height Color/BLACK nil)
+    (.drawImage graphics image 0 0 width height (Color. 0 0 0 0) nil)
     buffered))
 
 ;; for file input, named for historical reasons
