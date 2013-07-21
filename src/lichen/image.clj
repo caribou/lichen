@@ -27,7 +27,6 @@
         
 (defn output-image-to
   [image stream quality & [extension]]
-  (println "extension is" extension)
   (let [extension (or extension "jpg")
         writer (.next (ImageIO/getImageWritersByFormatName extension))
         output (ImageIO/createImageOutputStream stream)
@@ -102,4 +101,4 @@
           byte-stream (java.io.ByteArrayOutputStream.)]
       (output-image-to sized byte-stream (or (:quality opts) 1.0) extension)
       (java.io.ByteArrayInputStream. (.toByteArray byte-stream)))
-    (catch Exception e (do (println e)))))
+    (catch Exception e (println e) (.printStackTrace e))))

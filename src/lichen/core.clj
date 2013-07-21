@@ -49,8 +49,7 @@
       java.net.URL.
       .openConnection
       .getContentLength
-      (max 1)
-      (doto println)))
+      (max 1)))
 
 (defn lichen-resize-s3
   "input is the URL (or URL string) where the file to be resized exists
@@ -78,6 +77,7 @@
                            }
                           (s3/grant :all-users :read))
            (catch Exception e
+             (println e)
              (println "error in lichen-resize-s3")
              (.printStackTrace e))))
     target))
