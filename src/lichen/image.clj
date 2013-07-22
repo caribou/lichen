@@ -16,14 +16,29 @@
     (.drawImage graphics image 0 0 width height (Color. 0 0 0 0) nil)
     buffered))
 
+(defn open-jpeg-stream
+  [image]
+  (let [width (.getWidth image)
+        height (.getHeight image)
+        buffered (BufferedImage. width height BufferedImage/TYPE_3BYTE_BGR)
+        graphics (.createGraphics buffered)]
+    (.drawImage graphics image 0 0 width height Color/BLACK nil)
+    buffered))
+
 ;; for file input, named for historical reasons
 (defn open-image
-  [filename]
-  (open-image-stream (ImageIO/read (io/file filename))))
+  [filename & [extension]]
+  ((if (not (= extension "jpg"))
+     open-image-stream
+     open-jpeg-stream)
+   (ImageIO/read (io/file filename))))
 
 (defn open-image-url
-  [url]
-  (open-image-stream (ImageIO/read (io/input-stream url))))
+  [url & [extension]]
+  ((if (not (= (extension "jpg")))
+     open-image-stream
+     open-jpeg-stream)
+   (ImageIO/read (io/input-stream url))))
         
 (defn output-image-to
   [image stream quality & [extension]]
@@ -42,9 +57,8 @@
     (.write writer nil (IIOImage. image nil nil) params)))
 
 (defn output-image
-  [image filename quality]
-  (let [filestream (io/file filename)
-        extension (subs (path/attain-extension filename) 1)]
+  [image filename quality & [extension]]
+  (let [filestream (io/file filename)]
     (output-image-to image filestream quality extension)))
 
 (defn resize-stream
@@ -76,9 +90,10 @@
   the aspect ratio of the original image."
   [filename new-filename opts]
   (try
-    (let [original (open-image filename)
+    (let [extension (subs (path/attain-extension filename) 1)
+          original (open-image filename extension)
           sized (resize-stream original opts)]
-      (output-image sized new-filename (or (:quality opts) 1.0)))
+      (output-image sized new-filename (or (:quality opts) 1.0) extension))
     (catch Exception e (do (println e) (.printStackTrace e)))))
 
 (defn url-content-type
@@ -96,7 +111,7 @@
           extension (get {"image/jpeg" "jpg"
                           "image/png" "png"
                           "image/gif" "gif"} content-type "jpg")
-          original (open-image-url url)
+          original (open-image-url url extension)
           sized (resize-stream original opts)
           byte-stream (java.io.ByteArrayOutputStream.)]
       (output-image-to sized byte-stream (or (:quality opts) 1.0) extension)
