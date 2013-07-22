@@ -35,7 +35,7 @@
 
 (defn open-image-url
   [url & [extension]]
-  ((if (not (= (extension "jpg")))
+  ((if (not (= extension "jpg"))
      open-image-stream
      open-jpeg-stream)
    (ImageIO/read (io/input-stream url))))
