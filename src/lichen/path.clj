@@ -129,7 +129,7 @@
 (defn lichen-s3-info
   [bucket asset-root path extension queries]
   (let [dir (lichen-dir (str "/lichen/" path ) asset-root)
-        apropos-key (str 
+        apropos-key (str dir
                          (build-token path queries)
                          \.
                          extension)]
