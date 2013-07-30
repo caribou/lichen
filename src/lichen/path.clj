@@ -79,7 +79,9 @@
    locally on disk)"
   [uri asset-root]
   (let [path (extract-image-path uri)
-        lichen-dir (str asset-root path lichen-root file-separator)]
+        lichen-dir (if asset-root
+                     (str asset-root path lichen-root file-separator)
+                     (str (subs path 1) lichen-root file-separator))]
     lichen-dir))
 
 (defn lichen-uri
@@ -110,8 +112,8 @@
   (let [protocol-match "^https?://"
         bucket-match "(.*)\\."
         host-match "s3.amazonaws.com/"
-        asset-root-match (re-quote asset-root)
-        dir-match "/(.*/)"
+        asset-root-match (when asset-root (str (re-quote asset-root) \/))
+        dir-match "(.*/)"
         name-match "(.*)\\."
         extension-match "(.+)$"
         analysis-re (re-pattern (str protocol-match
@@ -126,7 +128,8 @@
 
 (defn lichen-s3-info
   [bucket asset-root path extension queries]
-  (let [apropos-key (str (lichen-dir (str "/lichen/" path ) asset-root)
+  (let [dir (lichen-dir (str "/lichen/" path ) asset-root)
+        apropos-key (str 
                          (build-token path queries)
                          \.
                          extension)]
