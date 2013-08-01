@@ -25,21 +25,14 @@
     (.drawImage graphics image 0 0 width height Color/BLACK nil)
     buffered))
 
-;; for file input, named for historical reasons
 (defn open-image
-  [filename & [extension]]
-  ((if (not (= extension "jpg"))
-     open-image-stream
-     open-jpeg-stream)
-   (ImageIO/read (io/file filename))))
-
-(defn open-image-url
   [url & [extension]]
   ((if (not (= extension "jpg"))
      open-image-stream
      open-jpeg-stream)
+   ;; FAILS for cmyk input - how do we fix this?
    (ImageIO/read (io/input-stream url))))
-        
+
 (defn output-image-to
   [image stream quality & [extension]]
   (let [extension (or extension "jpg")
@@ -84,6 +77,19 @@
         sized (.filter resample original nil)]
     sized))
 
+(defn attempt-transformed-stream
+  [source opts extension]
+  (try
+    [true
+     (-> source
+         (open-image extension)
+         (resize-stream opts))]
+    (catch Exception e
+      (println e)
+      (.printStackTrace e)
+      (println "\nLICHEN.IMAGE USING ORIGINAL INPUT INSTEAD OF RESIZED\n")
+      [false (io/input-stream source)])))
+           
 (defn resize-file
   "Resizes the image specified by filename according to the supplied options
   (:width or :height), saving to file new-filename.  This function retains
@@ -91,9 +97,10 @@
   [filename new-filename opts]
   (try
     (let [extension (subs (path/attain-extension filename) 1)
-          original (open-image filename extension)
-          sized (resize-stream original opts)]
-      (output-image sized new-filename (or (:quality opts) 1.0) extension))
+          [success result] (attempt-transformed-stream filename opts extension)]
+      (if success
+        (output-image result new-filename (or (:quality opts) 1.0) extension)
+        (io/copy result (io/file new-filename))))
     (catch Exception e (do (println e) (.printStackTrace e)))))
 
 (defn url-content-type
@@ -111,9 +118,10 @@
           extension (get {"image/jpeg" "jpg"
                           "image/png" "png"
                           "image/gif" "gif"} content-type "jpg")
-          original (open-image-url url extension)
-          sized (resize-stream original opts)
-          byte-stream (java.io.ByteArrayOutputStream.)]
-      (output-image-to sized byte-stream (or (:quality opts) 1.0) extension)
-      (java.io.ByteArrayInputStream. (.toByteArray byte-stream)))
+          [success result] (attempt-transformed-stream url opts extension)]
+      (if success
+        (let [bytes (java.io.ByteArrayOutputStream.)]
+          (output-image-to result bytes (or (:quality opts) 1.0) extension)
+          (java.io.ByteArrayInputStream. (.toByteArray bytes)))
+        result))
     (catch Exception e (println e) (.printStackTrace e))))
