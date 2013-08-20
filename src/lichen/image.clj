@@ -101,7 +101,7 @@
       (if success
         (output-image result new-filename (or (:quality opts) 1.0) extension)
         (io/copy result (io/file new-filename))))
-    (catch Exception e (do (println e) (.printStackTrace e)))))
+    (catch Exception e (println (format "resizing:  No file by the name %s" filename)))))
 
 (defn url-content-type
   [url]
