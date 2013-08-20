@@ -27,11 +27,13 @@
 
 (defn open-image
   [url & [extension]]
-  ((if (not (= extension "jpg"))
-     open-image-stream
-     open-jpeg-stream)
-   ;; FAILS for cmyk input - how do we fix this?
-   (ImageIO/read (io/input-stream url))))
+  (let [stream (io/input-stream url)
+        open-stream (if (not (= extension "jpg"))
+                      open-image-stream
+                      open-jpeg-stream)]
+    (open-stream
+     ;; FAILS for cmyk input - how do we fix this?
+     (ImageIO/read (io/input-stream url)))))
 
 (defn output-image-to
   [image stream quality & [extension]]
@@ -85,9 +87,6 @@
          (open-image extension)
          (resize-stream opts))]
     (catch Exception e
-      (println e)
-      (.printStackTrace e)
-      (println "\nLICHEN.IMAGE USING ORIGINAL INPUT INSTEAD OF RESIZED\n")
       [false (io/input-stream source)])))
            
 (defn resize-file
@@ -96,14 +95,12 @@
   the aspect ratio of the original image."
   [filename new-filename opts]
   (try
-    (if (.exists (io/file filename))
-      (let [extension (subs (path/attain-extension filename) 1)
-            [success result] (attempt-transformed-stream filename opts extension)]
-        (if success
-          (output-image result new-filename (or (:quality opts) 1.0) extension)
-          (io/copy result (io/file new-filename))))
-      (println (format "resize-file:  No file at the path %s" filename)))
-    (catch Exception e (println (format "resizing:  No file by the name %s" filename)))))
+    (let [extension (subs (path/attain-extension filename) 1)
+          [success result] (attempt-transformed-stream filename opts extension)]
+      (if success
+        (output-image result new-filename (or (:quality opts) 1.0) extension)
+        (io/copy result (io/file new-filename))))
+    (catch Exception e (println e))))
 
 (defn url-content-type
   [url]
