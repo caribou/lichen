@@ -96,11 +96,13 @@
   the aspect ratio of the original image."
   [filename new-filename opts]
   (try
-    (let [extension (subs (path/attain-extension filename) 1)
-          [success result] (attempt-transformed-stream filename opts extension)]
-      (if success
-        (output-image result new-filename (or (:quality opts) 1.0) extension)
-        (io/copy result (io/file new-filename))))
+    (if (.exists (io/file filename))
+      (let [extension (subs (path/attain-extension filename) 1)
+            [success result] (attempt-transformed-stream filename opts extension)]
+        (if success
+          (output-image result new-filename (or (:quality opts) 1.0) extension)
+          (io/copy result (io/file new-filename))))
+      (println (format "resize-file:  No file at the path %s" filename)))
     (catch Exception e (println (format "resizing:  No file by the name %s" filename)))))
 
 (defn url-content-type
