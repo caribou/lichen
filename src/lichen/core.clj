@@ -11,6 +11,8 @@
   [image-file]
   (.exists image-file))
   
+
+
 (defn url-accessible?
   "has this remote asset been created?"
   [image-url]
@@ -51,7 +53,28 @@
       .getContentLength
       (max 1)))
 
-(defn lichen-resize-s3
+(def stamp #(.getTime (java.util.Date.)))
+
+(defn time-cache
+  [f cache-time & [purge-token reset-token]]
+  (let [results (atom {})
+        timeout (atom cache-time)
+        purge-token (or purge-token :purge)
+        reset-token (or reset-token :reset)]
+    (fn [& args]
+      (cond (= args [purge-token]) (reset! results {})
+            (= (first args) reset-token) (reset! timeout (second args))
+            :default (let [atime (stamp)
+                           [last-time cached] (get @results args)]
+                       (if (or (nil? cached)
+                               (> (- atime last-time)
+                                  @timeout))
+                         (let [new-result (apply f args)]
+                           (swap! results assoc args [atime new-result])
+                           new-result)
+                         cached))))))
+
+(def lichen-resize-s3
   "input is the URL (or URL string) where the file to be resized exists
    input must be in the same bucket that the resized image is to go into, and
    the creds supplied must provide access to upload a file to that bucket
@@ -61,26 +84,29 @@
 
    An s3 key for upload will be generated based on the key, the hash of the
    options and key-name, and the key-name suffix"
-  [input opts asset-root creds]
-  (let [[bucket path name extension] (path/analyze-s3-url input asset-root)
-        queries  (path/query-string opts)
-        [upload-key target] (path/lichen-s3-info bucket asset-root
-                                            (str path name \. extension)
-                                            extension queries)
-        url (java.net.URL. input)
-        content-type (image/url-content-type url)]
-    (when-not (url-accessible? target)
-      (try (s3/put-object creds bucket upload-key
-                          (image/resize-url url opts content-type)
-                          {:content-type (or content-type "image/jpeg")
-                           ;; :content-length (get-http-object-size input)
-                           }
-                          (s3/grant :all-users :read))
-           (catch Exception e
-             (println e)
-             (println "error in lichen-resize-s3")
-             (.printStackTrace e))))
-    target))
+
+  (time-cache
+   (fn [input opts asset-root creds]
+     (let [[bucket path name extension] (path/analyze-s3-url input asset-root)
+           queries  (path/query-string opts)
+           [upload-key target] (path/lichen-s3-info bucket asset-root
+                                                    (str path name \. extension)
+                                                    extension queries)
+           url (java.net.URL. input)
+           content-type (image/url-content-type url)]
+       (when-not (url-accessible? target)
+         (try (s3/put-object creds bucket upload-key
+                             (image/resize-url url opts content-type)
+                             {:content-type (or content-type "image/jpeg")
+                              ;; :content-length (get-http-object-size input)
+                              }
+                             (s3/grant :all-users :read))
+              (catch Exception e
+                (println e)
+                (println "error in lichen-resize-s3")
+                (.printStackTrace e))))
+       target))
+   (* 1000 60 60)))
 
 (defn wrap-lichen
   [handler asset-root]
