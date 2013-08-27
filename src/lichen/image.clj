@@ -8,32 +8,37 @@
            [com.mortennobel.imagescaling ResampleOp]))
 
 (defn open-image-stream
-  [image]
+  [image & [b+w]]
   (let [width (.getWidth image)
         height (.getHeight image)
-        buffered (BufferedImage. width height BufferedImage/TYPE_4BYTE_ABGR)
+        mode (if b+w BufferedImage/TYPE_BYTE_GRAY
+                 BufferedImage/TYPE_4BYTE_ABGR)
+        buffered (BufferedImage. width height mode)
         graphics (.createGraphics buffered)]
     (.drawImage graphics image 0 0 width height (Color. 0 0 0 0) nil)
     buffered))
 
 (defn open-jpeg-stream
-  [image]
+  [image & [b+w]]
   (let [width (.getWidth image)
         height (.getHeight image)
-        buffered (BufferedImage. width height BufferedImage/TYPE_3BYTE_BGR)
+        mode (if b+w BufferedImage/TYPE_BYTE_GRAY
+                 BufferedImage/TYPE_3BYTE_BGR)
+        buffered (BufferedImage. width height mode)
         graphics (.createGraphics buffered)]
     (.drawImage graphics image 0 0 width height Color/BLACK nil)
     buffered))
 
 (defn open-image
-  [url & [extension]]
+  [url & [extension b+w]]
   (let [stream (io/input-stream url)
         open-stream (if (not (= extension "jpg"))
                       open-image-stream
                       open-jpeg-stream)]
     (open-stream
      ;; FAILS for cmyk input - how do we fix this?
-     (ImageIO/read (io/input-stream url)))))
+     (ImageIO/read (io/input-stream url))
+     b+w)))
 
 (defn output-image-to
   [image stream quality & [extension]]
@@ -59,6 +64,7 @@
 (defn resize-stream
   "Given an image stream, return a new stream that has been resized
    understood options:
+     :b+w if true, render in black and white
      :width desired width
      :height desired height
      :quality desired image quality"
@@ -84,7 +90,7 @@
   (try
     [true
      (-> source
-         (open-image extension)
+         (open-image extension (:b+w opts))
          (resize-stream opts))]
     (catch Exception e
       [false (io/input-stream source)])))
