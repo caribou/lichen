@@ -1,6 +1,6 @@
-(defproject antler/lichen "0.4.6"
+(defproject caribou/lichen "0.4.6"
   :description "A service for caching and retrieving images"
-  :url "http://github.com/antler/lichen"
+  :url "http://github.com/caribou/lichen"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.4.0"]
