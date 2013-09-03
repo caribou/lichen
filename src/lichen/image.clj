@@ -71,9 +71,14 @@
   [original opts]
   (let [width (.getWidth original)
         height (.getHeight original)
-        desired-width (if-let [w (opts :width)] (Integer. w))
-        desired-height (if-let [h (opts :height)] (Integer. h))
-        ratio (/ (float width) (float height))
+        size-ratio (if-let [r (get opts :ratio)] (Double. r))
+        desired-width (cond size-ratio (* size-ratio width)
+                            (get opts :width) (Integer. (get opts :width))
+                            :default nil)
+        desired-height (cond size-ratio (* size-ratio height)
+                             (get opts :height) (Integer. (get opts :height))
+                             :default nil)
+        ratio (/ (double height) (double width))
         target-width (or desired-width
                          (and desired-height (* desired-height ratio))
                          width)
