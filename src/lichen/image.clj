@@ -67,7 +67,8 @@
      :b+w if true, render in black and white
      :width desired width
      :height desired height
-     :quality desired image quality"
+     :quality desired image quality
+     :scale scale dimensions by this factor (overrides :width and :height)"
   [original opts]
   (let [width (.getWidth original)
         height (.getHeight original)
