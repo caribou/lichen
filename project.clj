@@ -1,4 +1,4 @@
-(defproject caribou/lichen "0.4.7-scale-ratio"
+(defproject antler/lichen "0.4.7-scale-ratio-1"
   :description "A service for caching and retrieving images"
   :url "http://github.com/antler/lichen"
   :license {:name "Eclipse Public License"
