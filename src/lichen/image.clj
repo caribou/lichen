@@ -79,7 +79,7 @@
         desired-height (cond scale (* scale height)
                              (get opts :height) (Integer. (get opts :height))
                              :default nil)
-        ratio (/ (double height) (double width))
+        ratio (/ (double width) (double height))
         target-width (or desired-width
                          (and desired-height (* desired-height ratio))
                          width)
