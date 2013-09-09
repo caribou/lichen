@@ -110,9 +110,9 @@
     (let [extension (subs (path/attain-extension filename) 1)
           [success result] (attempt-transformed-stream filename opts extension)]
       (if success
-        (output-image result new-filename (or (:quality opts) 1.0) extension)
+        (output-image result new-filename (Double. (or (:quality opts) 1.0)) extension)
         (io/copy result (io/file new-filename))))
-    (catch Exception e (println e))))
+    (catch Exception e (do (println e) (.printStackTrace e)))))
 
 (defn url-content-type
   [url]
