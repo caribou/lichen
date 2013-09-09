@@ -112,7 +112,7 @@
       (if success
         (output-image result new-filename (Double. (or (:quality opts) 1.0)) extension)
         (io/copy result (io/file new-filename))))
-    (catch Exception e (do (println e) (.printStackTrace e)))))
+    (catch Exception e (println e))))
 
 (defn url-content-type
   [url]
