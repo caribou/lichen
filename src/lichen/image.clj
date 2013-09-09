@@ -8,32 +8,37 @@
            [com.mortennobel.imagescaling ResampleOp]))
 
 (defn open-image-stream
-  [image]
+  [image & [b+w]]
   (let [width (.getWidth image)
         height (.getHeight image)
-        buffered (BufferedImage. width height BufferedImage/TYPE_4BYTE_ABGR)
+        mode (if b+w BufferedImage/TYPE_BYTE_GRAY
+                 BufferedImage/TYPE_4BYTE_ABGR)
+        buffered (BufferedImage. width height mode)
         graphics (.createGraphics buffered)]
     (.drawImage graphics image 0 0 width height (Color. 0 0 0 0) nil)
     buffered))
 
 (defn open-jpeg-stream
-  [image]
+  [image & [b+w]]
   (let [width (.getWidth image)
         height (.getHeight image)
-        buffered (BufferedImage. width height BufferedImage/TYPE_3BYTE_BGR)
+        mode (if b+w BufferedImage/TYPE_BYTE_GRAY
+                 BufferedImage/TYPE_3BYTE_BGR)
+        buffered (BufferedImage. width height mode)
         graphics (.createGraphics buffered)]
     (.drawImage graphics image 0 0 width height Color/BLACK nil)
     buffered))
 
 (defn open-image
-  [url & [extension]]
+  [url & [extension b+w]]
   (let [stream (io/input-stream url)
         open-stream (if (not (= extension "jpg"))
                       open-image-stream
                       open-jpeg-stream)]
     (open-stream
      ;; FAILS for cmyk input - how do we fix this?
-     (ImageIO/read (io/input-stream url)))))
+     (ImageIO/read (io/input-stream url))
+     b+w)))
 
 (defn output-image-to
   [image stream quality & [extension]]
@@ -59,15 +64,22 @@
 (defn resize-stream
   "Given an image stream, return a new stream that has been resized
    understood options:
+     :b+w if true, render in black and white
      :width desired width
      :height desired height
-     :quality desired image quality"
+     :quality desired image quality
+     :scale scale dimensions by this factor (overrides :width and :height)"
   [original opts]
   (let [width (.getWidth original)
         height (.getHeight original)
-        desired-width (if-let [w (opts :width)] (Integer. w))
-        desired-height (if-let [h (opts :height)] (Integer. h))
-        ratio (/ (float width) (float height))
+        scale (if-let [r (get opts :scale)] (Double. r))
+        desired-width (cond scale (* scale width)
+                            (get opts :width) (Integer. (get opts :width))
+                            :default nil)
+        desired-height (cond scale (* scale height)
+                             (get opts :height) (Integer. (get opts :height))
+                             :default nil)
+        ratio (/ (double height) (double width))
         target-width (or desired-width
                          (and desired-height (* desired-height ratio))
                          width)
@@ -84,7 +96,7 @@
   (try
     [true
      (-> source
-         (open-image extension)
+         (open-image extension (:b+w opts))
          (resize-stream opts))]
     (catch Exception e
       [false (io/input-stream source)])))
