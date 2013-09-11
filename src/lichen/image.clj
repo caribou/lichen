@@ -3,7 +3,7 @@
             [lichen.path :as path])
   (:import [java.awt.image BufferedImage]
            [java.awt Color]
-           [javax.imageio IIOImage ImageIO ImageReader ImageWriteParam]
+           [javax.imageio IIOImage ImageIO ImageReader ImageWriteParam IIOException]
            [javax.imageio.plugins.jpeg JPEGImageWriteParam]
            [com.mortennobel.imagescaling ResampleOp]))
 
@@ -94,12 +94,15 @@
 (defn attempt-transformed-stream
   [source opts extension]
   (try
-    [true
+    [:success
      (-> source
          (open-image extension (:b+w opts))
          (resize-stream opts))]
-    (catch Exception e
-      [false (io/input-stream source)])))
+    (catch javax.imageio.IIOException e ;; for cmyk and other weird image formats
+      [:copy (io/input-stream source)])
+    (catch Exception e 
+      (println e)
+      [:fail nil])))
            
 (defn resize-file
   "Resizes the image specified by filename according to the supplied options
@@ -109,9 +112,10 @@
   (try
     (let [extension (subs (path/attain-extension filename) 1)
           [success result] (attempt-transformed-stream filename opts extension)]
-      (if success
-        (output-image result new-filename (Double. (or (:quality opts) 1.0)) extension)
-        (io/copy result (io/file new-filename))))
+      (condp = success
+        :success (output-image result new-filename (Double. (or (:quality opts) 1.0)) extension)
+        :copy (io/copy result (io/file new-filename))
+        :fail nil))
     (catch Exception e (println e))))
 
 (defn url-content-type
