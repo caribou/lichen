@@ -7,38 +7,50 @@
            [javax.imageio.plugins.jpeg JPEGImageWriteParam]
            [com.mortennobel.imagescaling ResampleOp]))
 
-(defn open-image-stream
-  [image & [b+w]]
+(defn open-stream
+  [byte-format fill-color image]
   (let [width (.getWidth image)
         height (.getHeight image)
-        mode (if b+w BufferedImage/TYPE_BYTE_GRAY
-                 BufferedImage/TYPE_4BYTE_ABGR)
+        mode byte-format
         buffered (BufferedImage. width height mode)
         graphics (.createGraphics buffered)]
-    (.drawImage graphics image 0 0 width height (Color. 0 0 0 0) nil)
+    (.drawImage graphics image 0 0 width height fill-color nil)
     buffered))
+
+(defn open-image-stream
+  [image & [b+w]]
+  (open-stream (if b+w BufferedImage/TYPE_BYTE_GRAY
+                   BufferedImage/TYPE_4BYTE_ABGR)
+               (Color. 0 0 0 0)
+               image))
 
 (defn open-jpeg-stream
   [image & [b+w]]
-  (let [width (.getWidth image)
-        height (.getHeight image)
-        mode (if b+w BufferedImage/TYPE_BYTE_GRAY
-                 BufferedImage/TYPE_3BYTE_BGR)
-        buffered (BufferedImage. width height mode)
-        graphics (.createGraphics buffered)]
-    (.drawImage graphics image 0 0 width height Color/BLACK nil)
-    buffered))
+  (open-stream (if b+w BufferedImage/TYPE_BYTE_GRAY
+                        BufferedImage/TYPE_3BYTE_BGR)
+               Color/BLACK
+               image))
 
 (defn open-image
   [url & [extension b+w]]
-  (let [stream (io/input-stream url)
-        open-stream (if (not (= extension "jpg"))
-                      open-image-stream
-                      open-jpeg-stream)]
-    (open-stream
-     ;; FAILS for cmyk input - how do we fix this?
-     (ImageIO/read (io/input-stream url))
-     b+w)))
+  (try
+    (let [stream (io/input-stream url)
+          open (if (= extension "jpg")
+                 open-jpeg-stream
+                 open-image-stream)]
+      (open
+       ;; FAILS for cmyk input - how do we fix this?
+       (ImageIO/read (io/input-stream url))
+       b+w))
+    (catch javax.imageio.IIOException e
+      (println "unsupported image for reading" url)
+      :image-open-failure)
+    (catch java.io.FileNotFoundException e
+      (println "cannot find resource to open and resize")
+      :not-found-failure)
+    (catch java.lang.IllegalArgumentException e
+      (println "cannot find resource to open and resize")
+      :not-found-failure)))
 
 (defn output-image-to
   [image stream quality & [extension]]
@@ -93,17 +105,13 @@
 
 (defn attempt-transformed-stream
   [source opts extension]
-  (try
-    [:success
-     (-> source
-         (open-image extension (:b+w opts))
-         (resize-stream opts))]
-    (catch javax.imageio.IIOException e ;; for cmyk and other weird image formats
-      [:copy (io/input-stream source)])
-    (catch Exception e 
-      (println e)
-      [:fail nil])))
-           
+  (let [image-stream (open-image source extension (:b+w opts))]
+    (case image-stream
+      ;; if imageio cannot process it, just pass it along
+      :image-open-failure [:copy (io/input-stream source)]
+      :not-found-failure [:fail (println "cannot resize" source ", not found")]
+      [:success (resize-stream image-stream opts)])))
+
 (defn resize-file
   "Resizes the image specified by filename according to the supplied options
   (:width or :height), saving to file new-filename.  This function retains
