@@ -93,11 +93,13 @@
                                                     (str path name \. extension)
                                                     extension queries)
            url (java.net.URL. input)
-           content-type (image/url-content-type url)]
+           content-type (or (:content-type opts)
+                            (image/url-content-type url))
+           opts (assoc opts :target target)]
        (when-not (url-accessible? target)
          (try (s3/put-object creds bucket upload-key
-                             (image/resize-url url opts content-type)
-                             {:content-type (or content-type "image/jpeg")
+                             (image/resize-url url opts)
+                             {:content-type (:content-type opts)
                               ;; :content-length (get-http-object-size input)
                               }
                              (s3/grant :all-users :read))

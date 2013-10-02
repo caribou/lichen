@@ -1,6 +1,7 @@
 (ns lichen.image
   (:require [clojure.java.io :as io]
-            [lichen.path :as path])
+            [lichen.path :as path]
+            [pantomime.mime :refer [mime-type-of]])
   (:import [java.awt.image BufferedImage]
            [java.awt Color]
            [javax.imageio IIOImage ImageIO ImageReader ImageWriteParam IIOException]
@@ -32,10 +33,10 @@
                image))
 
 (defn open-image
-  [url & [extension b+w]]
+  [url & [b+w]]
   (try
     (let [stream (io/input-stream url)
-          open (if (= extension "jpg")
+          open (if (= (mime-type-of stream) "image/jpeg")
                  open-jpeg-stream
                  open-image-stream)]
       (open
@@ -53,25 +54,26 @@
       :not-found-failure)))
 
 (defn output-image-to
-  [image stream quality & [extension]]
-  (let [extension (or extension "jpg")
+  [image stream quality extension target]
+  (let [extension (or extension ".jpg")
         writer (.next (ImageIO/getImageWritersByFormatName extension))
         output (ImageIO/createImageOutputStream stream)
         _ (.setOutput writer output)
         params (.getDefaultWriteParam writer)]
-    (cond (= extension "jpg")
-          (.setCompressionMode params JPEGImageWriteParam/MODE_EXPLICIT)
-          (= extension "gif")
-          (.setCompressionMode params ImageWriteParam/MODE_EXPLICIT)
-          :default nil)
-    (when (#{"jpg"} extension)
-      (.setCompressionQuality params quality))
+    (cond (= "image/jpeg" (mime-type-of target))
+          (do (.setCompressionMode params JPEGImageWriteParam/MODE_EXPLICIT)
+              (.setCompressionQuality params quality))
+          (get #{"gif"} extension)
+               (.setCompressionMode params ImageWriteParam/MODE_EXPLICIT)
+               :default nil)
     (.write writer nil (IIOImage. image nil nil) params)))
 
 (defn output-image
-  [image filename quality & [extension]]
+  [image filename quality & [destination]]
   (let [filestream (io/file filename)]
-    (output-image-to image filestream quality extension)))
+    (output-image-to image filestream quality
+                     (subs (path/attain-extension destination) 1)
+                     destination)))
 
 (defn resize-stream
   "Given an image stream, return a new stream that has been resized
@@ -104,8 +106,8 @@
     sized))
 
 (defn attempt-transformed-stream
-  [source opts extension]
-  (let [image-stream (open-image source extension (:b+w opts))]
+  [source opts]
+  (let [image-stream (open-image source (:b+w opts))]
     (case image-stream
       ;; if imageio cannot process it, just pass it along
       :image-open-failure [:copy (io/input-stream source)]
@@ -118,10 +120,20 @@
   the aspect ratio of the original image."
   [filename new-filename opts]
   (try
-    (let [extension (subs (path/attain-extension filename) 1)
-          [success result] (attempt-transformed-stream filename opts extension)]
+    (let [extension (subs (path/attain-extension new-filename) 1)
+          target new-filename
+          content-type (or (:content-type opts)
+                           (mime-type-of new-filename)
+                           (mime-type-of filename))
+          opts (assoc opts
+                 :target new-filename
+                 :extension extension
+                 :content-type content-type)
+          [success result] (attempt-transformed-stream filename opts)]
       (condp = success
-        :success (output-image result new-filename (Double. (or (:quality opts) 1.0)) extension)
+        :success (output-image result new-filename
+                               (Double. (or (:quality opts) 1.0))
+                               new-filename)
         :copy (io/copy result (io/file new-filename))
         :fail nil))
     (catch Exception e (println e))))
@@ -135,16 +147,26 @@
 
 (defn resize-url
   "returns a stream suitable for passing to, for example, an s3 upload"
-  [url opts & [content-type]]
+  [url opts]
   (try
-    (let [content-type (or content-type (url-content-type url))
-          extension (get {"image/jpeg" "jpg"
-                          "image/png" "png"
-                          "image/gif" "gif"} content-type "jpg")
-          [success result] (attempt-transformed-stream url opts extension)]
+    (let [content-type (or (:content-type opts)
+                           (and (:target opts)
+                                (mime-type-of (:target opts)))
+                           "image/jpeg")
+          extension (or (:extension opts)
+                        (get {"image/jpeg" "jpg"
+                              "image/png" "png"
+                              "image/gif" "gif"} content-type "jpg"))
+          target (or (:target opts) (str "placeholder" \. extension))
+          opts (assoc opts
+                 :target target
+                 :extension extension
+                 :content-type content-type)
+          [success result] (attempt-transformed-stream url opts)]
       (if success
         (let [bytes (java.io.ByteArrayOutputStream.)]
-          (output-image-to result bytes (or (:quality opts) 1.0) extension)
+          (output-image-to result bytes (or (:quality opts) 1.0) extension
+                           target)
           (java.io.ByteArrayInputStream. (.toByteArray bytes)))
         result))
     (catch Exception e (println e) (.printStackTrace e))))

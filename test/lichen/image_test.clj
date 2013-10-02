@@ -4,6 +4,13 @@
             [clojure.test :as test
              :refer [deftest testing is]]))
 
+(defn memory-gripe
+  []
+  (println "TIME"
+           (java.util.Date.)
+           "MEMORY USAGE:"
+           (/ (.totalMemory (java.lang.Runtime/getRuntime)) 1048576.0)))
+
 (test/use-fixtures :once
   (fn [test]
     (test)
@@ -27,8 +34,7 @@
     (is (= [clojure.lang.Keyword java.io.BufferedInputStream]
            (map type (image/attempt-transformed-stream
                       (io/resource "test-resources/cmyk-jpg.jpg")
-                      {}
-                      "jpg"))))))
+                      {}))))))
 
 (deftest resize-file
   (testing "cmyk jpeg handling"
