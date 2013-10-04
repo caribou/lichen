@@ -68,8 +68,7 @@
   "constructs an md5 hash of the URI and resizing options without (the
    potentially mutable) lichen-prefix"
   [uri queries]
-  (let [clean-uri (remove-lichen-prefix uri)
-        full-uri (str clean-uri "?" queries)
+  (let [full-uri (str uri "?" queries)
         hash (md5 full-uri)]
     hash))
 
@@ -89,7 +88,7 @@
    at by URI would live on the local file system"
   [uri queries asset-root]
   (let [dir (lichen-dir uri asset-root)
-        token (build-token uri queries)
+        token (build-token (remove-lichen-prefix uri) queries)
         extension (attain-extension uri)]
     (str dir token extension)))
 
