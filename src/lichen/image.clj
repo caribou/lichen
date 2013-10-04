@@ -1,12 +1,18 @@
 (ns lichen.image
   (:require [clojure.java.io :as io]
             [lichen.path :as path]
-            [pantomime.mime :refer [mime-type-of]])
+            [pantomime.mime :as mime])
   (:import [java.awt.image BufferedImage]
            [java.awt Color]
            [javax.imageio IIOImage ImageIO ImageReader ImageWriteParam IIOException]
            [javax.imageio.plugins.jpeg JPEGImageWriteParam]
            [com.mortennobel.imagescaling ResampleOp]))
+
+(defn mime-type-of
+  "sometimes we check for something that is not sanely checkable"
+  [thing]
+  (try (mime/mime-type-of thing)
+       (catch Throwable t nil)))
 
 (defn open-stream
   [byte-format fill-color image]
@@ -152,12 +158,13 @@
     (let [content-type (or (:content-type opts)
                            (and (:target opts)
                                 (mime-type-of (:target opts)))
+                           (mime-type-of url)
                            "image/jpeg")
           extension (or (:extension opts)
                         (get {"image/jpeg" "jpg"
                               "image/png" "png"
                               "image/gif" "gif"} content-type "jpg"))
-          target (or (:target opts) (str "placeholder" \. extension))
+          target (str "placeholder" \. extension)
           opts (assoc opts
                  :target target
                  :extension extension
