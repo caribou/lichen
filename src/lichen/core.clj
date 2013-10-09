@@ -97,12 +97,10 @@
                             (image/url-content-type url))
            opts (assoc opts :target target)]
        (when-not (url-accessible? target)
-         (try (s3/put-object creds bucket upload-key
-                             (image/resize-url url opts)
-                             {:content-type (:content-type opts)
-                              ;; :content-length (get-http-object-size input)
-                              }
-                             (s3/grant :all-users :read))
+         (try (s3/put-multipart-object creds bucket upload-key
+                                       (image/resize-url url opts)
+                                       {:content-type (:content-type opts)}
+                                       (s3/grant :all-users :read))
               (catch Exception e
                 (println e)
                 (println "error in lichen-resize-s3")
