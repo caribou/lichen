@@ -97,7 +97,7 @@
                             (image/url-content-type url))
            opts (assoc opts :target target)]
        (when-not (url-accessible? target)
-         (try (s3/put-multipart-object creds bucket upload-key
+         (try (s3/put-multipart-stream creds bucket upload-key
                                        (image/resize-url url opts)
                                        {:content-type (:content-type opts)}
                                        (s3/grant :all-users :read))
