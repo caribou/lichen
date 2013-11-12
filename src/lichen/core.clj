@@ -103,10 +103,7 @@
                               ;; :content-length (get-http-object-size input)
                               }
                              (s3/grant :all-users :read))
-              (catch Exception e
-                (println e)
-                (println "error in lichen-resize-s3")
-                (.printStackTrace e))))
+              (catch Exception e (println e))))
        target))
    (* 1000 60 60)))
 

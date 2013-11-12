@@ -176,4 +176,4 @@
                            target)
           (java.io.ByteArrayInputStream. (.toByteArray bytes)))
         result))
-    (catch Exception e (println e) (.printStackTrace e))))
+    (catch Exception e (println e))))

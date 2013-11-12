@@ -1,4 +1,4 @@
-(defproject caribou/lichen "0.6.11"
+(defproject caribou/lichen "0.6.14"
   :description "A service for caching and retrieving images"
   :url "http://github.com/caribou/lichen"
   :license {:name "Eclipse Public License"

@@ -6,7 +6,7 @@ A service for caching and retrieving images.
 
 Add this to your project.clj:
 
-`[caribou/lichen "0.6.11"]`
+`[caribou/lichen "0.6.14"]`
 
 Resize a single image:
 
