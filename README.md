@@ -6,7 +6,7 @@ A service for caching and retrieving images.
 
 Add this to your project.clj:
 
-`[antler/lichen "0.2.0"]`
+`[caribou/lichen "0.6.14"]`
 
 Resize a single image:
 
@@ -27,6 +27,6 @@ Then at the command line:
 
 ## License
 
-Copyright © 2012 Instrument/Antler
+Copyright © 2012 Instrument/Caribou
 
 Distributed under the Eclipse Public License, the same as Clojure.
