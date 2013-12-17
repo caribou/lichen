@@ -32,6 +32,7 @@
    a new file, with a hash describing the resize options, is made in a lichen
    subdirectory under the image's parent"
   [path opts asset-root]
+  (assert (string? path) "path to lichen asset must be a string")
   (let [dir (path/lichen-dir path asset-root)
         _ (.mkdirs (io/file dir))
         queries (path/query-string opts)
@@ -87,6 +88,7 @@
 
   (time-cache
    (fn [input opts asset-root creds]
+     (assert (string? input) "input to lichen must be a string")
      (let [[bucket path name extension] (path/analyze-s3-url input asset-root)
            queries  (path/query-string opts)
            [upload-key target] (path/lichen-s3-info bucket asset-root
