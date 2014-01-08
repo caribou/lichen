@@ -21,6 +21,22 @@
                "test/test-resources/logo.gif"]]
       (.delete (io/file f)))))
 
+(def remote-image "http://www.google.com/images/srpr/logo4w.png")
+
+(deftest readability
+  (testing "can read a URL"
+    (is (= true
+           (image/can-read? (java.net.URL. remote-image)))))
+  (testing "cannot read YUV"
+    (is (= false
+           (image/can-read? (io/file "test/test-resources/cmyk-jpg.jpg")))))
+  (testing "can read url from string"
+    (is (= true
+           (image/can-read-url? remote-image))))
+  (testing "can read file from string"
+    (is (= true
+           (image/can-read-file? "test/test-resources/rgb-jpg.jpg")))))
+
 (deftest open-image
   (testing "cmyk jpeg handling"
     (is (= :image-open-failure
@@ -74,8 +90,7 @@
   (is (= nil
          (io/copy
           (image/resize-url
-           (new java.net.URL
-                "http://www.google.com/images/srpr/logo4w.png")
+           (new java.net.URL remote-image)
            {:b+w true})
           (io/file "test/test-resources/logo.gif"))))
   (is (= java.io.BufferedInputStream

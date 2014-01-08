@@ -14,6 +14,18 @@
   (try (mime/mime-type-of thing)
        (catch Throwable t nil)))
 
+(defn can-read?
+  "test if this is a file lichen can do something sensible with"
+  [source]
+  (try (javax.imageio.ImageIO/read source)
+       true
+       (catch javax.imageio.IIOException e
+         false)))
+
+(def can-read-file? (comp can-read? io/file))
+
+(def can-read-url? (comp can-read? #(java.net.URL. %)))
+
 (defn open-stream
   [byte-format fill-color image]
   (let [width (.getWidth image)
