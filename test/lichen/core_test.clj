@@ -58,6 +58,6 @@
   (is (= (path/lichen-s3-info
           "the.vestibule" "zinio" "assets/0000/0077/zinio-news-hero-web-50.jpg"
           "jpg" {:width 100 :height 100 :quality 0.8})
-         ["zinio/assets/0000/0077/lichen/1f0992e142ed341ab2c760c723e365ac.jpg"
+         ["zinio/assets/0000/0077/lichen/5a3e59d7c63447fb34c5cc3a9745539d.jpg"
           (java.net.URL.
-           "http://the.vestibule.s3.amazonaws.com/zinio/assets/0000/0077/lichen/1f0992e142ed341ab2c760c723e365ac.jpg")])))
+           "http://the.vestibule.s3.amazonaws.com/zinio/assets/0000/0077/lichen/5a3e59d7c63447fb34c5cc3a9745539d.jpg")])))
